@@ -6,6 +6,7 @@ load_dotenv()
 
 from slack_bolt import App
 from slack_bolt.oauth.oauth_settings import OAuthSettings
+from slack_sdk.oauth.state_store import FileOAuthStateStore
 from store import DynamoDBInstallationStore
 from llm import parse_lunch
 
@@ -20,6 +21,7 @@ app = App(
         user_scopes=["users.profile:write"],
         installation_store=installation_store,
         redirect_uri=os.environ.get("SLACK_REDIRECT_URI"),
+        state_store=FileOAuthStateStore(expiration_seconds=300, base_dir="/tmp/slack-oauth-state"),
     ),
     process_before_response=True,
 )

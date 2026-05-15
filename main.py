@@ -1,35 +1,68 @@
 import os
-from slack_bolt import App
+import time
+from dotenv import load_dotenv
 
-# Initialize your app with your tokens
+load_dotenv()
+
+from slack_bolt import App
+from llm import parse_lunch
+
 app = App(
-    token=os.environ.get("SLACK_BOT_TOKEN"),
-    signing_secret=os.environ.get("SLACK_SIGNING_SECRET")
+    token=os.environ["SLACK_BOT_TOKEN"],
+    signing_secret=os.environ["SLACK_SIGNING_SECRET"],
 )
 
-# Listen for the /lunch command
-@app.command("/lunch")
-def handle_lunch_command(ack, body, client):
-    # Acknowledge the command request immediately (Slack requires this within 3 seconds)
-    ack()
-    
-    # 1. Grab what the user typed (e.g., "a spicy burrito")
-    user_text = body["text"]
-    user_id = body["user_id"]
-    
-    # 2. Vibe check with the LLM (Psuedocode)
-    # emoji = ask_llm_for_emoji(user_text)
-    
-    # 3. Update the user's status!
-    client.users_profile_set(
-        user=user_id,
-        profile={
-            "status_text": f"Eating: {user_text}",
-            "status_emoji": emoji,
-            "status_expiration": 0 # You can calculate a unix timestamp for 1 hour from now!
-        }
-    )
+DEFAULT_DURATION = int(os.environ.get("DEFAULT_LUNCH_DURATION_MINUTES", "30"))
 
-# Start your local server
+
+@app.command("/lunch")
+def handle_lunch_command(ack, body, client, respond):
+    ack()
+
+    user_text = body.get("text", "").strip()
+    user_id = body["user_id"]
+
+    if not user_text:
+        respond("Tell me what you're eating! e.g. `/lunch a spicy burrito 45m`")
+        return
+
+    if user_text.lower() in ("clear", "done"):
+        try:
+            client.users_profile_set(
+                user=user_id,
+                profile={"status_text": "", "status_emoji": "", "status_expiration": 0},
+                token=os.environ["SLACK_USER_TOKEN"],
+            )
+            respond("Status cleared.")
+        except Exception:
+            respond("Couldn't clear your status — check the app has the right permissions.")
+        return
+
+    try:
+        result = parse_lunch(user_text)
+    except Exception:
+        respond("Couldn't figure out that lunch — try describing it differently.")
+        return
+
+    duration = result.get("duration_minutes") or DEFAULT_DURATION
+    expiration = int(time.time()) + duration * 60
+
+    try:
+        client.users_profile_set(
+            user=user_id,
+            profile={
+                "status_text": f"Eating: {result['status_text']}",
+                "status_emoji": result["emoji"],
+                "status_expiration": expiration,
+            },
+            token=os.environ["SLACK_USER_TOKEN"],
+        )
+    except Exception:
+        respond("Couldn't set your status — check the app has the right permissions.")
+        return
+
+    respond(f"{result['emoji']} Status set to *Eating: {result['status_text']}* for {duration} minutes.")
+
+
 if __name__ == "__main__":
     app.start(port=3000)

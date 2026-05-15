@@ -4,7 +4,9 @@ import logging
 from slack_bolt.adapter.aws_lambda import SlackRequestHandler
 from main import app
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("botocore").setLevel(logging.WARNING)
+logging.getLogger("botocore.endpoint").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 slack_handler = SlackRequestHandler(app=app)

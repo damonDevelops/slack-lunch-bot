@@ -19,11 +19,8 @@ export class SlackLunchBotStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    const slackSecret = secretsmanager.Secret.fromSecretNameV2(
-      this, 'SlackSecret', 'slack-lunch-bot/slack'
-    );
-    const anthropicSecret = secretsmanager.Secret.fromSecretNameV2(
-      this, 'AnthropicSecret', 'slack-lunch-bot/anthropic'
+    const secret = secretsmanager.Secret.fromSecretNameV2(
+      this, 'BotSecret', 'slack-lunch-bot-secrets'
     );
 
     const fn = new lambda.Function(this, 'LunchBotFunction', {
@@ -49,17 +46,16 @@ export class SlackLunchBotStack extends cdk.Stack {
         },
       }),
       environment: {
-        SLACK_SIGNING_SECRET: slackSecret.secretValueFromJson('SLACK_SIGNING_SECRET').unsafeUnwrap(),
-        SLACK_CLIENT_ID: slackSecret.secretValueFromJson('SLACK_CLIENT_ID').unsafeUnwrap(),
-        SLACK_CLIENT_SECRET: slackSecret.secretValueFromJson('SLACK_CLIENT_SECRET').unsafeUnwrap(),
-        ANTHROPIC_API_KEY: anthropicSecret.secretValueFromJson('ANTHROPIC_API_KEY').unsafeUnwrap(),
+        SLACK_SIGNING_SECRET: secret.secretValueFromJson('SLACK_SIGNING_SECRET').unsafeUnwrap(),
+        SLACK_CLIENT_ID: secret.secretValueFromJson('SLACK_CLIENT_ID').unsafeUnwrap(),
+        SLACK_CLIENT_SECRET: secret.secretValueFromJson('SLACK_CLIENT_SECRET').unsafeUnwrap(),
+        ANTHROPIC_API_KEY: secret.secretValueFromJson('ANTHROPIC_API_KEY').unsafeUnwrap(),
         DEFAULT_LUNCH_DURATION_MINUTES: '30',
       },
     });
 
     table.grantReadWriteData(fn);
-    slackSecret.grantRead(fn);
-    anthropicSecret.grantRead(fn);
+    secret.grantRead(fn);
 
     const integration = new HttpLambdaIntegration('LunchBotIntegration', fn);
 

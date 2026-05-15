@@ -3,3 +3,5 @@
 .claude/
 __pycache__/
 *.pyc
+package/
+deployment.zip

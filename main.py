@@ -5,25 +5,50 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from slack_bolt import App
+from slack_bolt.oauth.oauth_settings import OAuthSettings
+from store import DynamoDBInstallationStore
 from llm import parse_lunch
 
+installation_store = DynamoDBInstallationStore()
+
 app = App(
-    token=os.environ["SLACK_BOT_TOKEN"],
     signing_secret=os.environ["SLACK_SIGNING_SECRET"],
+    oauth_settings=OAuthSettings(
+        client_id=os.environ["SLACK_CLIENT_ID"],
+        client_secret=os.environ["SLACK_CLIENT_SECRET"],
+        scopes=["commands"],
+        user_scopes=["users.profile:write"],
+        installation_store=installation_store,
+        redirect_uri=os.environ.get("SLACK_REDIRECT_URI"),
+    ),
+    process_before_response=True,
 )
 
 DEFAULT_DURATION = int(os.environ.get("DEFAULT_LUNCH_DURATION_MINUTES", "30"))
+APP_BASE_URL = os.environ.get("APP_BASE_URL", "")
 
 
 @app.command("/lunch")
-def handle_lunch_command(ack, body, client, respond):
+def handle_lunch_command(ack, body, client, respond, context):
     ack()
 
     user_text = body.get("text", "").strip()
     user_id = body["user_id"]
+    team_id = body["team_id"]
 
     if not user_text:
         respond("Tell me what you're eating! e.g. `/lunch a spicy burrito 45m`")
+        return
+
+    installation = installation_store.find_installation(
+        enterprise_id=context.get("enterprise_id"),
+        team_id=team_id,
+        user_id=user_id,
+    )
+
+    if not installation or not installation.user_token:
+        install_url = f"{APP_BASE_URL}/slack/install"
+        respond(f"Before I can set your status, connect your account first. <{install_url}|Authorise here →>")
         return
 
     if user_text.lower() in ("clear", "done"):
@@ -31,11 +56,12 @@ def handle_lunch_command(ack, body, client, respond):
             client.users_profile_set(
                 user=user_id,
                 profile={"status_text": "", "status_emoji": "", "status_expiration": 0},
-                token=os.environ["SLACK_USER_TOKEN"],
+                token=installation.user_token,
             )
             respond("Status cleared.")
         except Exception:
-            respond("Couldn't clear your status — check the app has the right permissions.")
+            install_url = f"{APP_BASE_URL}/slack/install"
+            respond(f"Couldn't clear your status — try re-authorising. <{install_url}|Authorise here →>")
         return
 
     try:
@@ -55,10 +81,11 @@ def handle_lunch_command(ack, body, client, respond):
                 "status_emoji": result["emoji"],
                 "status_expiration": expiration,
             },
-            token=os.environ["SLACK_USER_TOKEN"],
+            token=installation.user_token,
         )
     except Exception:
-        respond("Couldn't set your status — check the app has the right permissions.")
+        install_url = f"{APP_BASE_URL}/slack/install"
+        respond(f"Couldn't set your status — try re-authorising. <{install_url}|Authorise here →>")
         return
 
     respond(f"{result['emoji']} Status set to *Eating: {result['status_text']}* for {duration} minutes.")

@@ -1,114 +1,164 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Privacy Policy — Lunchbox</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy Policy — Lunchbox</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #b54016;
-      color: #fff;
-      min-height: 100vh;
-      padding: 3rem 2rem;
-    }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #b54016;
+        color: #fff;
+        min-height: 100vh;
+        padding: 3rem 2rem;
+      }
 
-    .container {
-      max-width: 680px;
-      margin: 0 auto;
-    }
+      .container {
+        max-width: 680px;
+        margin: 0 auto;
+      }
 
-    .back {
-      display: inline-block;
-      color: #fff;
-      opacity: 0.7;
-      text-decoration: none;
-      font-size: 0.9rem;
-      margin-bottom: 2rem;
-    }
+      .back {
+        display: inline-block;
+        color: #fff;
+        opacity: 0.7;
+        text-decoration: none;
+        font-size: 0.9rem;
+        margin-bottom: 2rem;
+      }
 
-    .back:hover { opacity: 1; }
+      .back:hover {
+        opacity: 1;
+      }
 
-    h1 {
-      font-size: 2rem;
-      font-weight: 800;
-      margin-bottom: 0.5rem;
-    }
+      h1 {
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+      }
 
-    .updated {
-      font-size: 0.85rem;
-      opacity: 0.6;
-      margin-bottom: 2.5rem;
-    }
+      .updated {
+        font-size: 0.85rem;
+        opacity: 0.6;
+        margin-bottom: 2.5rem;
+      }
 
-    .card {
-      background: rgba(255,255,255,0.12);
-      border-radius: 16px;
-      padding: 2rem;
-      margin-bottom: 1.5rem;
-    }
+      .card {
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+      }
 
-    h2 {
-      font-size: 1rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      opacity: 0.7;
-      margin-bottom: 0.75rem;
-    }
+      h2 {
+        font-size: 1rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        opacity: 0.7;
+        margin-bottom: 0.75rem;
+      }
 
-    p {
-      line-height: 1.7;
-      opacity: 0.9;
-      margin-bottom: 0.75rem;
-    }
+      p {
+        line-height: 1.7;
+        opacity: 0.9;
+        margin-bottom: 0.75rem;
+      }
 
-    p:last-child { margin-bottom: 0; }
+      p:last-child {
+        margin-bottom: 0;
+      }
 
-    a { color: #fff; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <a class="back" href="index.html">← Back to Lunchbox</a>
+      a {
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <a class="back" href="index.html">← Back to Lunchbox</a>
 
-    <h1>Privacy Policy</h1>
-    <p class="updated">Last updated: 15 May 2026</p>
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated: 15 May 2026</p>
 
-    <div class="card">
-      <h2>What we collect</h2>
-      <p>When you install Lunchbox, we store your Slack workspace's bot token and your personal Slack user OAuth token. These are required to set your Slack status on your behalf.</p>
-      <p>We also receive the text you type after <code>/lunch</code> and send it to Anthropic's Claude API to determine an appropriate emoji and status text. We do not store this text.</p>
+      <div class="card">
+        <h2>What we collect</h2>
+        <p>
+          When you install Lunchbox, we store your Slack workspace's bot token
+          and your personal Slack user OAuth token. These are required to set
+          your Slack status on your behalf.
+        </p>
+        <p>
+          We also receive the text you type after <code>/lunch</code> and send
+          it to Anthropic's Claude API to determine an appropriate emoji and
+          status text. We do not store this text.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>How we use it</h2>
+        <p>
+          Your user token is used solely to call Slack's
+          <code>users.profile.set</code> API to update your status. We do not
+          use it for any other purpose.
+        </p>
+        <p>
+          Tokens are stored in AWS DynamoDB in the
+          <code>ap-southeast-2</code> (Sydney) region.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>What we don't do</h2>
+        <p>
+          We do not sell, share, or otherwise distribute your data to any third
+          party. We do not read your Slack messages. We do not store your lunch
+          descriptions.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Third-party services</h2>
+        <p>
+          <strong>Anthropic Claude</strong> — lunch descriptions are sent to
+          Claude to pick an emoji. Anthropic's privacy policy applies:
+          <a href="https://www.anthropic.com/privacy" target="_blank"
+            >anthropic.com/privacy</a
+          >.
+        </p>
+        <p>
+          <strong>AWS</strong> — tokens are stored in AWS DynamoDB. AWS's
+          privacy policy applies:
+          <a href="https://aws.amazon.com/privacy" target="_blank"
+            >aws.amazon.com/privacy</a
+          >.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Deleting your data</h2>
+        <p>
+          To remove your data, uninstall Lunchbox from your Slack workspace or
+          email us at
+          <a href="mailto:damon.oneil2@hotmail.com">damon.oneil2@hotmail.com</a>
+          and we will delete your tokens within 7 days.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Contact</h2>
+        <p>
+          Questions?
+          <a href="mailto:damon.oneil2@hotmail.com">damon.oneil2@hotmail.com</a>
+        </p>
+      </div>
     </div>
-
-    <div class="card">
-      <h2>How we use it</h2>
-      <p>Your user token is used solely to call Slack's <code>users.profile.set</code> API to update your status. We do not use it for any other purpose.</p>
-      <p>Tokens are stored in AWS DynamoDB in the <code>ap-southeast-2</code> (Sydney) region.</p>
-    </div>
-
-    <div class="card">
-      <h2>What we don't do</h2>
-      <p>We do not sell, share, or otherwise distribute your data to any third party. We do not read your Slack messages. We do not store your lunch descriptions.</p>
-    </div>
-
-    <div class="card">
-      <h2>Third-party services</h2>
-      <p><strong>Anthropic Claude</strong> — lunch descriptions are sent to Claude to pick an emoji. Anthropic's privacy policy applies: <a href="https://www.anthropic.com/privacy" target="_blank">anthropic.com/privacy</a>.</p>
-      <p><strong>AWS</strong> — tokens are stored in AWS DynamoDB. AWS's privacy policy applies: <a href="https://aws.amazon.com/privacy" target="_blank">aws.amazon.com/privacy</a>.</p>
-    </div>
-
-    <div class="card">
-      <h2>Deleting your data</h2>
-      <p>To remove your data, uninstall Lunchbox from your Slack workspace or email us at <a href="mailto:damononeil@salesahoy.com">damononeil@salesahoy.com</a> and we will delete your tokens within 7 days.</p>
-    </div>
-
-    <div class="card">
-      <h2>Contact</h2>
-      <p>Questions? <a href="mailto:damononeil@salesahoy.com">damononeil@salesahoy.com</a></p>
-    </div>
-  </div>
-</body>
+  </body>
 </html>

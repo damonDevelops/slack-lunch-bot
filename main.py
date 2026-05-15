@@ -22,6 +22,7 @@ app = App(
         installation_store=installation_store,
         redirect_uri=os.environ.get("SLACK_REDIRECT_URI"),
         state_store=FileOAuthStateStore(expiration_seconds=300, base_dir="/tmp/slack-oauth-state"),
+        install_page_rendering_enabled=False,
     ),
     process_before_response=True,
 )

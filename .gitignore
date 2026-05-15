@@ -5,3 +5,7 @@ __pycache__/
 *.pyc
 package/
 deployment.zip
+docs/superpowers/
+cdk/node_modules/
+cdk/cdk.out/
+cdk/dist/

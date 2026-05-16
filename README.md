@@ -29,6 +29,36 @@ Duration defaults to the workspace setting if not specified (system default: 30 
 - **DynamoDB** — stores OAuth installations and per-workspace config
 - **AWS CDK** — infrastructure as code
 
+## Prompt Evaluator
+
+`eval_prompt.py` runs a set of lunch descriptions through the LLM and grades each emoji choice using a second Claude call as a judge. Use it to measure prompt quality and compare versions objectively.
+
+### Setup
+
+Copy `.env.example` to `.env` and add your Anthropic API key:
+
+```bash
+cp .env.example .env
+# then edit .env and fill in your key
+```
+
+### Running
+
+```bash
+python eval_prompt.py
+```
+
+Each case prints the chosen emoji, a rating (`good` / `could_be_better` / `poor`), and the judge's reasoning. A final average score (0.00–1.00) is printed at the end.
+
+To save results for comparison across prompt versions:
+
+```bash
+python eval_prompt.py > results/v1.txt
+grep "Score:" results/v1.txt results/v2.txt
+```
+
+Test cases live in `eval_cases.yaml`. Add new cases any time you spot a real-world input that produced a questionable emoji.
+
 ## License
 
 AGPL v3

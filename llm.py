@@ -7,7 +7,7 @@ from bot_secrets import load_secrets
 
 logger = logging.getLogger(__name__)
 
-FALLBACK_EMOJI = ":fork_and_knife_with_plate:"
+FALLBACK_EMOJI = ":knife_fork_plate:"
 _EMOJI_RE = re.compile(r'^:[a-z0-9_+-]+:$')
 
 # Built-in Slack food/drink emoji shortcodes (all valid aliases included).
@@ -45,7 +45,7 @@ BUILTIN_FOOD_EMOJIS = [
     ":beverage_box:", ":mate:", ":ice_cube:",
     # Dishware / generic
     ":chopsticks:", ":plate_with_cutlery:", ":fork_and_knife:", ":spoon:",
-    ":hocho:", ":knife:", ":amphora:", ":fork_and_knife_with_plate:",
+    ":hocho:", ":knife:", ":amphora:", ":knife_fork_plate:",
 ]
 
 _emoji_cache: dict[str, tuple[float, list[str]]] = {}
@@ -88,7 +88,7 @@ _SYSTEM_PROMPT_BASE = """You are a Slack status assistant. Given a description o
   2. Complete Meals vs. Ingredients: For mixed bowls, broths, or pan-cooked dishes (e.g., "poke bowl", "bibimbap", "congee", "shakshuka"), use the vessel that represents the complete dish (`:bowl_with_spoon:`, `:shallow_pan_of_food:`). Do not reduce a whole meal to a single ingredient like `:rice:` or `:egg:`.
   3. Defining Ingredient Priority: For open-faced items or items defined by a single add-on (e.g., "avocado toast"), prioritize the star ingredient (`:avocado:`) over the generic base (`:bread:`).
   4. Main Dish Focus: In multi-item meals (e.g., "cheeseburger and fries"), pick the main dish (`:hamburger:`). If the main dish lacks an emoji (e.g., "fish and chips"), pick the iconic side (`:fries:`).
-  5. Only use `:fork_and_knife_with_plate:` as an absolute last resort.
+  5. Only use `:knife_fork_plate:` as an absolute last resort.
 
 - "verb": "Eating" if it is food, "Drinking" if it is primarily a drink (e.g. wine, coffee, a smoothie, broth, shakes).
 - "status_text": preserve the user's original phrasing as closely as possible — keep descriptive words like "greasy", "spicy", "a big bowl of". Strip any duration mention (e.g. "45m", "1h", "for 30 minutes"). Only condense if the result would exceed 90 characters. No verb prefix.
@@ -103,7 +103,7 @@ _SYSTEM_PROMPT_WITH_LIST = """You are a Slack status assistant. Given a descript
   2. Complete Meals vs. Ingredients: For mixed bowls, broths, or pan-cooked dishes (e.g., "poke bowl", "bibimbap", "congee", "shakshuka"), use the vessel that represents the complete dish (`:bowl_with_spoon:`, `:shallow_pan_of_food:`). Do not reduce a whole meal to a single ingredient like `:rice:` or `:egg:`.
   3. Defining Ingredient Priority: For open-faced items or items defined by a single add-on (e.g., "avocado toast"), prioritize the star ingredient (`:avocado:`) over the generic base (`:bread:`).
   4. Main Dish Focus: In multi-item meals (e.g., "cheeseburger and fries"), pick the main dish (`:hamburger:`). If the main dish lacks an emoji (e.g., "fish and chips"), pick the iconic side (`:fries:`).
-  5. Only use `:fork_and_knife_with_plate:` if nothing else is even remotely appropriate.
+  5. Only use `:knife_fork_plate:` if nothing else is even remotely appropriate.
 
 - "verb": "Eating" if it is food, "Drinking" if it is primarily a drink (e.g. wine, coffee, a smoothie, broth, shakes).
 - "status_text": preserve the user's original phrasing as closely as possible — keep descriptive words like "greasy", "spicy", "a big bowl of". Strip any duration mention (e.g. "45m", "1h", "for 30 minutes"). Only condense if the result would exceed 90 characters. No verb prefix.

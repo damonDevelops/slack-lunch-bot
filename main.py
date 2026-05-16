@@ -133,6 +133,7 @@ def _handle_lunch_lazy(body, client, respond, context):
     token_prefix = (installation.user_token or "")[:10]
     logger.info("Setting status for user %s: emoji=%r text=%r expiration=%s token_prefix=%s",
                 user_id, result["emoji"], result["status_text"], expiration, token_prefix)
+    
     emoji = result["emoji"]
     for attempt_emoji in [emoji, FALLBACK_EMOJI]:
         try:
@@ -149,13 +150,29 @@ def _handle_lunch_lazy(body, client, respond, context):
             break
         except Exception as exc:
             response = getattr(exc, "response", None)
-            error_code = response["error"] if response is not None else ""
-            if error_code == "profile_status_set_failed_not_valid_emoji" and attempt_emoji != FALLBACK_EMOJI:
-                logger.warning("Emoji %r rejected by Slack for user %s, retrying with fallback", attempt_emoji, user_id)
-                continue
-            logger.exception("Failed to set Slack status for user %s in team %s", user_id, team_id)
-            install_url = f"{APP_BASE_URL}/slack/install"
-            respond(f"Couldn't set your status — try re-authorising. <{install_url}|Authorise here →>")
+            # Use .get() safely in case response is not a dict
+            error_code = response.get("error", "") if isinstance(response, dict) else ""
+            
+            # 1. Handle Bad Emojis
+            if error_code == "profile_status_set_failed_not_valid_emoji":
+                if attempt_emoji != FALLBACK_EMOJI:
+                    logger.warning("Emoji %r rejected by Slack for user %s, retrying with fallback", attempt_emoji, user_id)
+                    continue
+                else:
+                    logger.error("Fallback emoji %r was also rejected by Slack!", attempt_emoji)
+                    respond(f"Slack rejected the emoji `{attempt_emoji}`. Try a different food description.")
+                    return
+            
+            # 2. Handle True Auth Errors
+            if error_code in ("invalid_auth", "token_revoked", "account_inactive"):
+                logger.exception("Auth error for user %s in team %s", user_id, team_id)
+                install_url = f"{APP_BASE_URL}/slack/install"
+                respond(f"Your authorization expired or is invalid. <{install_url}|Authorise here →>")
+                return
+
+            # 3. Handle Everything Else
+            logger.exception("Failed to set Slack status for user %s. API Error: %s", user_id, error_code)
+            respond("Oops! Something went wrong communicating with Slack. Try again in a moment.")
             return
 
     verb = result["verb"]

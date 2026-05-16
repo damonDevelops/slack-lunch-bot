@@ -5,7 +5,7 @@ import time
 from slack_bolt import App
 from slack_bolt.oauth.oauth_settings import OAuthSettings
 from store import DynamoDBInstallationStore, DynamoDBOAuthStateStore, get_system_default_duration
-from llm import parse_lunch
+from llm import parse_lunch, FALLBACK_EMOJI
 from bot_secrets import load_secrets
 
 logger = logging.getLogger(__name__)
@@ -145,7 +145,10 @@ def _handle_lunch_lazy(body, client, respond, context):
         respond(f"Couldn't set your status — try re-authorising. <{install_url}|Authorise here →>")
         return
 
-    respond(f"{result['emoji']} Status set to *Eating: {result['status_text']}* for {duration} minutes.")
+    if result["emoji"] == FALLBACK_EMOJI:
+        respond(f"{result['emoji']} Status set to *Eating: {result['status_text']}* for {duration} minutes. _no emoji for that meal... how fancy_")
+    else:
+        respond(f"{result['emoji']} Status set to *Eating: {result['status_text']}* for {duration} minutes.")
 
 
 app.command("/lunch")(ack=_ack_lunch, lazy=[_handle_lunch_lazy])

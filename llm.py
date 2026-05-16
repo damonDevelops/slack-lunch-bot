@@ -84,7 +84,7 @@ def _get_client() -> anthropic.Anthropic:
 _SYSTEM_PROMPT_BASE = """You are a Slack status assistant. Given a description of what someone is eating for lunch, return ONLY a valid JSON object with exactly these three fields:
 
 - "emoji": the Slack emoji shortcode that best represents the food. Be creative — pick the closest thematic match even if it is not exact (e.g. use `:green_salad:` for salad, `:bowl_with_spoon:` for a grain bowl, `:ramen:` for any noodle soup). Only use `:fork_and_knife_with_plate:` as a last resort if nothing is even remotely appropriate.
-- "status_text": a clean, concise description of the food, max 30 characters, no "Eating:" prefix.
+- "status_text": preserve the user's original phrasing as closely as possible — keep descriptive words like "greasy", "spicy", "a big bowl of". Strip any duration mention (e.g. "45m", "1h", "for 30 minutes"). Only condense if the result would exceed 90 characters. No "Eating:" prefix.
 - "duration_minutes": an integer parsed from any duration in the input (e.g. "1h" → 60, "45m" → 45, "1.5h" → 90), or null if no duration is mentioned.
 
 Return ONLY the JSON object. No explanation, no markdown, no code fences."""
@@ -92,7 +92,7 @@ Return ONLY the JSON object. No explanation, no markdown, no code fences."""
 _SYSTEM_PROMPT_WITH_LIST = """You are a Slack status assistant. Given a description of what someone is eating for lunch, return ONLY a valid JSON object with exactly these three fields:
 
 - "emoji": the Slack emoji shortcode from the allowed list below that best represents the food. Be creative — pick the closest thematic match even if it is not exact (e.g. use `:green_salad:` for salad, `:bowl_with_spoon:` for a grain bowl, `:ramen:` for any noodle soup). Only use `:fork_and_knife_with_plate:` if nothing else is even remotely appropriate.
-- "status_text": a clean, concise description of the food, max 30 characters, no "Eating:" prefix.
+- "status_text": preserve the user's original phrasing as closely as possible — keep descriptive words like "greasy", "spicy", "a big bowl of". Strip any duration mention (e.g. "45m", "1h", "for 30 minutes"). Only condense if the result would exceed 90 characters. No "Eating:" prefix.
 - "duration_minutes": an integer parsed from any duration in the input (e.g. "1h" → 60, "45m" → 45, "1.5h" → 90), or null if no duration is mentioned.
 
 Return ONLY the JSON object. No explanation, no markdown, no code fences.
@@ -108,7 +108,7 @@ def parse_lunch(user_text: str, emoji_allowlist: list[str] | None = None) -> dic
 
     message = _get_client().messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=100,
+        max_tokens=150,
         temperature=0.2,
         system=system_prompt,
         messages=[

@@ -53,16 +53,13 @@ export class SlackLunchBotStack extends cdk.Stack {
               '--target /asset-output',
               '--only-binary=:all:',
               '--python-version 3.12 -q',
-              '&& cp main.py llm.py lambda_handler.py store.py /asset-output',
+              '&& cp main.py llm.py lambda_handler.py store.py bot_secrets.py /asset-output',
             ].join(' '),
           ],
         },
       }),
       environment: {
-        SLACK_SIGNING_SECRET: secret.secretValueFromJson('SLACK_SIGNING_SECRET').unsafeUnwrap(),
-        SLACK_CLIENT_ID: secret.secretValueFromJson('SLACK_CLIENT_ID').unsafeUnwrap(),
-        SLACK_CLIENT_SECRET: secret.secretValueFromJson('SLACK_CLIENT_SECRET').unsafeUnwrap(),
-        ANTHROPIC_API_KEY: secret.secretValueFromJson('ANTHROPIC_API_KEY').unsafeUnwrap(),
+        BOT_SECRET_ARN: secret.secretArn,
       },
     });
 

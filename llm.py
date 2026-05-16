@@ -1,7 +1,15 @@
 import json
 import anthropic
+from bot_secrets import load_secrets
 
-_client = anthropic.Anthropic()
+_client = None
+
+
+def _get_client() -> anthropic.Anthropic:
+    global _client
+    if _client is None:
+        _client = anthropic.Anthropic(api_key=load_secrets()["ANTHROPIC_API_KEY"])
+    return _client
 
 _SYSTEM_PROMPT = """You are a Slack status assistant. Given a description of what someone is eating for lunch, return ONLY a valid JSON object with exactly these three fields:
 
@@ -13,7 +21,7 @@ Return ONLY the JSON object. No explanation, no markdown, no code fences."""
 
 
 def parse_lunch(user_text: str) -> dict:
-    message = _client.messages.create(
+    message = _get_client().messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=100,
         system=_SYSTEM_PROMPT,

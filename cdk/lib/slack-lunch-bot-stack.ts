@@ -67,6 +67,12 @@ export class SlackLunchBotStack extends cdk.Stack {
       actions: ['ssm:GetParameter'],
       resources: [defaultDurationParam.parameterArn],
     }));
+    // Slack Bolt lazy listeners invoke the same Lambda asynchronously to run
+    // the actual handler after immediately acking the slash command.
+    fn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['lambda:InvokeFunction'],
+      resources: [fn.functionArn],
+    }));
 
     const integration = new HttpLambdaIntegration('LunchBotIntegration', fn);
 

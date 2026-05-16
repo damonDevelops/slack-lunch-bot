@@ -75,10 +75,11 @@ def _handle_config_command(args: str, user_id: str, team_id: str, client, respon
     respond(f"Workspace default lunch duration set to *{minutes} minutes*.")
 
 
-@app.command("/lunch")
-def handle_lunch_command(ack, body, client, respond, context):
+def _ack_lunch(ack):
     ack()
 
+
+def _handle_lunch_lazy(body, client, respond, context):
     user_text = body.get("text", "").strip()
     user_id = body["user_id"]
     team_id = body["team_id"]
@@ -141,6 +142,9 @@ def handle_lunch_command(ack, body, client, respond, context):
         return
 
     respond(f"{result['emoji']} Status set to *Eating: {result['status_text']}* for {duration} minutes.")
+
+
+app.command("/lunch")(ack=_ack_lunch, lazy=[_handle_lunch_lazy])
 
 
 if __name__ == "__main__":

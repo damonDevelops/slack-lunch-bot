@@ -122,7 +122,9 @@ def parse_lunch(user_text: str, emoji_allowlist: list[str] | None = None) -> dic
     result = json.loads(raw_text)
     if not isinstance(result.get("status_text"), str) or not isinstance(result.get("emoji"), str):
         raise ValueError(f"LLM returned invalid output: {result}")
-    # Normalize emoji to :name: format; fall back if it doesn't match
+    # Normalize emoji to :name: format, then validate against the allowlist.
+    # If it's not in the allowlist (or malformed), use the fallback rather than
+    # letting Slack reject it at the API level.
     raw_emoji = result["emoji"]
     emoji = raw_emoji.strip()
     if not emoji.startswith(":"):
@@ -130,7 +132,10 @@ def parse_lunch(user_text: str, emoji_allowlist: list[str] | None = None) -> dic
     if not emoji.endswith(":"):
         emoji = f"{emoji}:"
     if not _EMOJI_RE.match(emoji):
-        logger.warning("Emoji %r failed validation after normalization, using fallback", raw_emoji)
+        logger.warning("Emoji %r failed format validation, using fallback", raw_emoji)
+        emoji = FALLBACK_EMOJI
+    elif emoji_allowlist and emoji not in emoji_allowlist:
+        logger.warning("Emoji %r not in allowlist, using fallback", emoji)
         emoji = FALLBACK_EMOJI
     result["emoji"] = emoji
     logger.info("Parsed lunch result: status_text=%r emoji=%r duration_minutes=%r",

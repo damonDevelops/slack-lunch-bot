@@ -137,7 +137,7 @@ def _handle_lunch_lazy(body, client, respond, context):
         client.users_profile_set(
             user=user_id,
             profile={
-                "status_text": f"Eating: {result['status_text']}",
+                "status_text": f"{result['verb']}: {result['status_text']}",
                 "status_emoji": result["emoji"],
                 "status_expiration": expiration,
             },
@@ -154,10 +154,11 @@ def _handle_lunch_lazy(body, client, respond, context):
             respond(f"Couldn't set your status — try re-authorising. <{install_url}|Authorise here →>")
         return
 
+    verb = result["verb"]
     if result["emoji"] == FALLBACK_EMOJI:
-        respond(f"{result['emoji']} Status set to *Eating: {result['status_text']}* for {duration} minutes. _no emoji for that meal... how fancy_")
+        respond(f"{result['emoji']} Status set to *{verb}: {result['status_text']}* for {duration} minutes. _no emoji for that meal... how fancy_")
     else:
-        respond(f"{result['emoji']} Status set to *Eating: {result['status_text']}* for {duration} minutes.")
+        respond(f"{result['emoji']} Status set to *{verb}: {result['status_text']}* for {duration} minutes.")
 
 
 app.command("/lunch")(ack=_ack_lunch, lazy=[_handle_lunch_lazy])

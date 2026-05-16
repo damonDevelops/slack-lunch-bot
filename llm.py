@@ -81,18 +81,20 @@ def _get_client() -> anthropic.Anthropic:
     return _client
 
 
-_SYSTEM_PROMPT_BASE = """You are a Slack status assistant. Given a description of what someone is eating for lunch, return ONLY a valid JSON object with exactly these three fields:
+_SYSTEM_PROMPT_BASE = """You are a Slack status assistant. Given a description of what someone is eating or drinking for lunch, return ONLY a valid JSON object with exactly these four fields:
 
-- "emoji": the Slack emoji shortcode that best represents the food. Be creative — pick the closest thematic match even if it is not exact (e.g. use `:green_salad:` for salad, `:bowl_with_spoon:` for a grain bowl, `:ramen:` for any noodle soup). Only use `:fork_and_knife_with_plate:` as a last resort if nothing is even remotely appropriate.
-- "status_text": preserve the user's original phrasing as closely as possible — keep descriptive words like "greasy", "spicy", "a big bowl of". Strip any duration mention (e.g. "45m", "1h", "for 30 minutes"). Only condense if the result would exceed 90 characters. No "Eating:" prefix.
+- "emoji": the Slack emoji shortcode that best represents the food or drink. Be creative — pick the closest thematic match even if it is not exact (e.g. use `:green_salad:` for salad, `:bowl_with_spoon:` for a grain bowl, `:ramen:` for any noodle soup). Only use `:fork_and_knife_with_plate:` as a last resort if nothing is even remotely appropriate.
+- "verb": "Eating" if it is food, "Drinking" if it is primarily a drink (e.g. wine, coffee, a smoothie).
+- "status_text": preserve the user's original phrasing as closely as possible — keep descriptive words like "greasy", "spicy", "a big bowl of". Strip any duration mention (e.g. "45m", "1h", "for 30 minutes"). Only condense if the result would exceed 90 characters. No verb prefix.
 - "duration_minutes": an integer parsed from any duration in the input (e.g. "1h" → 60, "45m" → 45, "1.5h" → 90), or null if no duration is mentioned.
 
 Return ONLY the JSON object. No explanation, no markdown, no code fences."""
 
-_SYSTEM_PROMPT_WITH_LIST = """You are a Slack status assistant. Given a description of what someone is eating for lunch, return ONLY a valid JSON object with exactly these three fields:
+_SYSTEM_PROMPT_WITH_LIST = """You are a Slack status assistant. Given a description of what someone is eating or drinking for lunch, return ONLY a valid JSON object with exactly these four fields:
 
-- "emoji": the Slack emoji shortcode from the allowed list below that best represents the food. Be creative — pick the closest thematic match even if it is not exact (e.g. use `:green_salad:` for salad, `:bowl_with_spoon:` for a grain bowl, `:ramen:` for any noodle soup). Only use `:fork_and_knife_with_plate:` if nothing else is even remotely appropriate.
-- "status_text": preserve the user's original phrasing as closely as possible — keep descriptive words like "greasy", "spicy", "a big bowl of". Strip any duration mention (e.g. "45m", "1h", "for 30 minutes"). Only condense if the result would exceed 90 characters. No "Eating:" prefix.
+- "emoji": the Slack emoji shortcode from the allowed list below that best represents the food or drink. Be creative — pick the closest thematic match even if it is not exact (e.g. use `:green_salad:` for salad, `:bowl_with_spoon:` for a grain bowl, `:ramen:` for any noodle soup). Only use `:fork_and_knife_with_plate:` if nothing else is even remotely appropriate.
+- "verb": "Eating" if it is food, "Drinking" if it is primarily a drink (e.g. wine, coffee, a smoothie).
+- "status_text": preserve the user's original phrasing as closely as possible — keep descriptive words like "greasy", "spicy", "a big bowl of". Strip any duration mention (e.g. "45m", "1h", "for 30 minutes"). Only condense if the result would exceed 90 characters. No verb prefix.
 - "duration_minutes": an integer parsed from any duration in the input (e.g. "1h" → 60, "45m" → 45, "1.5h" → 90), or null if no duration is mentioned.
 
 Return ONLY the JSON object. No explanation, no markdown, no code fences.
@@ -122,6 +124,8 @@ def parse_lunch(user_text: str, emoji_allowlist: list[str] | None = None) -> dic
     result = json.loads(raw_text)
     if not isinstance(result.get("status_text"), str) or not isinstance(result.get("emoji"), str):
         raise ValueError(f"LLM returned invalid output: {result}")
+    if result.get("verb") not in ("Eating", "Drinking"):
+        result["verb"] = "Eating"
     # Normalize emoji to :name: format, then validate against the allowlist.
     # If it's not in the allowlist (or malformed), use the fallback rather than
     # letting Slack reject it at the API level.

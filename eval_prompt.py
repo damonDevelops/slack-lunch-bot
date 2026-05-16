@@ -11,17 +11,21 @@ from bot_secrets import load_secrets
 _SCORES = {"good": 1.0, "could_be_better": 0.5, "poor": 0.0}
 _SYMBOLS = {"good": "✓", "could_be_better": "~", "poor": "✗", "error": "!"}
 
-_JUDGE_SYSTEM = """You are evaluating emoji selection quality for a Slack status bot. Given a food or drink description and the emoji that was chosen, decide if it was the best available pick from the allowed list.
+_JUDGE_SYSTEM = """You are evaluating emoji selection quality for a Slack status bot. Given a food or drink description and the emoji that was chosen, decide if it was the best available pick from the allowed list JSON array.
+
+CRITICAL GRADING RUBRIC (You MUST grade based on these rules):
+1. Multi-item meals: The bot is instructed to pick the main dish (e.g., `:hamburger:` for burger & fries). If the main dish has no valid western emoji (like battered fish), it is instructed to pick the side (`:fries:`). Score this as "good". Do NOT suggest `:fish_cake:` (kamaboko) for fried fish.
+2. Drinks: For smoothies and shakes, `:cup_with_straw:` or `:milk_glass:` are correct. Do NOT suggest solid food (like `:green_salad:`) for liquids.
+3. Ambiguous/Mixed Items: For items like "Charcuterie" or "Dirty Chai Latte", accept the closest primary ingredient (`:cheese:`, `:meat_on_bone:`, `:coffee:`, or `:tea:`) as "good" since both are technically correct.
+4. Soups/Broths: `:bowl_with_spoon:` is the standard correct vessel for miso, congee, and broths. Do not dock points requesting stew unless it is actually a chunky stew.
 
 Rate it as one of:
-- "good" — best or near-best choice available
-- "could_be_better" — acceptable but a more fitting emoji exists in the list
-- "poor" — clearly wrong, confusing, or a generic fallback was used when a better option existed
+- "good" — best or near-best choice available, or followed the rules above perfectly
+- "could_be_better" — acceptable but a strictly more fitting emoji exists in the list
+- "poor" — clearly wrong or confusing
 
 Give a one-sentence reason. If the rating is not "good", name the better emoji.
 Return only JSON: {"rating": "...", "reason": "..."}"""
-
-
 def load_cases(path: str) -> list[str]:
     with open(path) as f:
         return yaml.safe_load(f)
@@ -32,21 +36,24 @@ def rating_to_score(rating: str) -> float:
 
 
 def judge_emoji(client: anthropic.Anthropic, food_input: str, chosen_emoji: str, allowed_emojis: list[str]) -> dict:
-    emoji_list = " ".join(allowed_emojis)
-    user_content = f"Food/drink: {food_input!r}\nChosen emoji: {chosen_emoji}\nAllowed emojis: {emoji_list}"
+    # Dumping to a JSON string forces the LLM to treat it as a structured data array
+    allowed_json = json.dumps(allowed_emojis)
+    user_content = f"Food/drink: {food_input!r}\nChosen emoji: {chosen_emoji}\nAllowed emojis: {allowed_json}"
+    
     message = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model="claude-sonnet-4-6",
         max_tokens=150,
         temperature=0,
         system=_JUDGE_SYSTEM,
-        messages=[
-            {"role": "user", "content": user_content},
-            {"role": "assistant", "content": "```json"},
-        ],
-        stop_sequences=["```"],
+        messages=[{"role": "user", "content": user_content}],
     )
-    return json.loads(message.content[0].text.strip())
-
+    raw = message.content[0].text.strip()
+    # Strip markdown fences if present (e.g. ```json ... ```)
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    return json.loads(raw.strip())
 
 def _make_client() -> anthropic.Anthropic:
     return anthropic.Anthropic(api_key=load_secrets()["ANTHROPIC_API_KEY"])

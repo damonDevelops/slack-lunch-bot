@@ -1,7 +1,10 @@
 import json
+import logging
 import re
 import anthropic
 from bot_secrets import load_secrets
+
+logger = logging.getLogger(__name__)
 
 FALLBACK_EMOJI = ":fork_and_knife_with_plate:"
 _EMOJI_RE = re.compile(r'^:[a-z0-9_+-]+:$')
@@ -35,14 +38,22 @@ def parse_lunch(user_text: str) -> dict:
         ],
         stop_sequences=["```"],
     )
-    result = json.loads(message.content[0].text.strip())
+    raw_text = message.content[0].text.strip()
+    logger.info("LLM raw response for %r: %s", user_text, raw_text)
+    result = json.loads(raw_text)
     if not isinstance(result.get("status_text"), str) or not isinstance(result.get("emoji"), str):
         raise ValueError(f"LLM returned invalid output: {result}")
     # Normalize emoji to :name: format; fall back if it doesn't match
-    emoji = result["emoji"].strip()
+    raw_emoji = result["emoji"]
+    emoji = raw_emoji.strip()
     if not emoji.startswith(":"):
         emoji = f":{emoji}"
     if not emoji.endswith(":"):
         emoji = f"{emoji}:"
-    result["emoji"] = emoji if _EMOJI_RE.match(emoji) else FALLBACK_EMOJI
+    if not _EMOJI_RE.match(emoji):
+        logger.warning("Emoji %r failed validation after normalization, using fallback", raw_emoji)
+        emoji = FALLBACK_EMOJI
+    result["emoji"] = emoji
+    logger.info("Parsed lunch result: status_text=%r emoji=%r duration_minutes=%r",
+                result["status_text"], result["emoji"], result.get("duration_minutes"))
     return result

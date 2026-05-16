@@ -61,10 +61,10 @@ def _handle_config_command(args: str, user_id: str, team_id: str, client, respon
     raw = args.rstrip("mM")
     try:
         minutes = int(raw)
-        if minutes <= 0:
+        if minutes <= 0 or minutes > 480:
             raise ValueError
     except ValueError:
-        respond("Please provide a valid duration, e.g. `/lunch config 45` or `/lunch config 45m`.")
+        respond("Please provide a duration between 1 and 480 minutes, e.g. `/lunch config 45`.")
         return
 
     user_info = client.users_info(user=user_id)["user"]
@@ -124,7 +124,7 @@ def _handle_lunch_lazy(body, client, respond, context):
         respond("Couldn't figure out that lunch — try describing it differently.")
         return
 
-    duration = result.get("duration_minutes") or resolve_default_duration(team_id)
+    duration = min(int(result.get("duration_minutes") or resolve_default_duration(team_id)), 480)
     expiration = int(time.time()) + duration * 60
 
     try:

@@ -31,4 +31,7 @@ def parse_lunch(user_text: str) -> dict:
         ],
         stop_sequences=["```"],
     )
-    return json.loads(message.content[0].text.strip())
+    result = json.loads(message.content[0].text.strip())
+    if not isinstance(result.get("status_text"), str) or not isinstance(result.get("emoji"), str):
+        raise ValueError(f"LLM returned invalid output: {result}")
+    return result

@@ -1,12 +1,14 @@
+import logging
 import os
 import time
 
 from slack_bolt import App
 from slack_bolt.oauth.oauth_settings import OAuthSettings
-from slack_sdk.oauth.state_store import FileOAuthStateStore
-from store import DynamoDBInstallationStore, get_system_default_duration
+from store import DynamoDBInstallationStore, DynamoDBOAuthStateStore, get_system_default_duration
 from llm import parse_lunch
 from bot_secrets import load_secrets
+
+logger = logging.getLogger(__name__)
 
 installation_store = DynamoDBInstallationStore()
 _secrets = load_secrets()
@@ -20,7 +22,7 @@ app = App(
         user_scopes=["users.profile:write"],
         installation_store=installation_store,
         redirect_uri=os.environ.get("SLACK_REDIRECT_URI"),
-        state_store=FileOAuthStateStore(expiration_seconds=300, base_dir="/tmp/slack-oauth-state"),
+        state_store=DynamoDBOAuthStateStore(),
         install_page_rendering_enabled=False,
     ),
     process_before_response=True,

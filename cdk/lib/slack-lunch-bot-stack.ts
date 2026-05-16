@@ -31,7 +31,10 @@ export class SlackLunchBotStack extends cdk.Stack {
       this, 'BotSecret', 'slack-lunch-bot-secrets'
     );
 
+    const fnName = 'slack-lunch-bot';
+
     const fn = new lambda.Function(this, 'LunchBotFunction', {
+      functionName: fnName,
       runtime: lambda.Runtime.PYTHON_3_12,
       handler: 'lambda_handler.handler',
       timeout: cdk.Duration.seconds(30),
@@ -69,9 +72,11 @@ export class SlackLunchBotStack extends cdk.Stack {
     }));
     // Slack Bolt lazy listeners invoke the same Lambda asynchronously to run
     // the actual handler after immediately acking the slash command.
+    // Use a plain string ARN (not fn.functionArn) to avoid a CDK circular
+    // dependency between the function resource and its own IAM policy.
     fn.addToRolePolicy(new iam.PolicyStatement({
       actions: ['lambda:InvokeFunction'],
-      resources: [fn.functionArn],
+      resources: [`arn:aws:lambda:${this.region}:${this.account}:function:${fnName}`],
     }));
 
     const integration = new HttpLambdaIntegration('LunchBotIntegration', fn);

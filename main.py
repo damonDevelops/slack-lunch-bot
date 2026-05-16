@@ -1,22 +1,21 @@
 import os
 import time
-from dotenv import load_dotenv
-
-load_dotenv()
 
 from slack_bolt import App
 from slack_bolt.oauth.oauth_settings import OAuthSettings
 from slack_sdk.oauth.state_store import FileOAuthStateStore
 from store import DynamoDBInstallationStore, get_system_default_duration
 from llm import parse_lunch
+from bot_secrets import load_secrets
 
 installation_store = DynamoDBInstallationStore()
+_secrets = load_secrets()
 
 app = App(
-    signing_secret=os.environ["SLACK_SIGNING_SECRET"],
+    signing_secret=_secrets["SLACK_SIGNING_SECRET"],
     oauth_settings=OAuthSettings(
-        client_id=os.environ["SLACK_CLIENT_ID"],
-        client_secret=os.environ["SLACK_CLIENT_SECRET"],
+        client_id=_secrets["SLACK_CLIENT_ID"],
+        client_secret=_secrets["SLACK_CLIENT_SECRET"],
         scopes=["commands", "users:read"],
         user_scopes=["users.profile:write"],
         installation_store=installation_store,

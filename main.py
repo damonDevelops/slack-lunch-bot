@@ -5,7 +5,7 @@ import time
 from slack_bolt import App
 from slack_bolt.oauth.oauth_settings import OAuthSettings
 from store import DynamoDBInstallationStore, DynamoDBOAuthStateStore, get_system_default_duration
-from llm import parse_lunch, FALLBACK_EMOJI
+from llm import parse_lunch, get_workspace_emoji_list, FALLBACK_EMOJI
 from bot_secrets import load_secrets
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ app = App(
     oauth_settings=OAuthSettings(
         client_id=_secrets["SLACK_CLIENT_ID"],
         client_secret=_secrets["SLACK_CLIENT_SECRET"],
-        scopes=["commands", "users:read"],
+        scopes=["commands", "users:read", "emoji:read"],
         user_scopes=["users.profile:write"],
         installation_store=installation_store,
         redirect_uri=os.environ.get("SLACK_REDIRECT_URI"),
@@ -119,8 +119,9 @@ def _handle_lunch_lazy(body, client, respond, context):
             respond(f"Couldn't clear your status — try re-authorising. <{install_url}|Authorise here →>")
         return
 
+    emoji_list = get_workspace_emoji_list(client, team_id)
     try:
-        result = parse_lunch(user_text)
+        result = parse_lunch(user_text, emoji_allowlist=emoji_list)
     except Exception:
         logger.exception("Failed to parse lunch text %r for user %s", user_text, user_id)
         respond("Couldn't figure out that lunch — try describing it differently.")
@@ -142,10 +143,15 @@ def _handle_lunch_lazy(body, client, respond, context):
             },
             token=installation.user_token,
         )
-    except Exception:
+    except Exception as exc:
         logger.exception("Failed to set Slack status for user %s in team %s", user_id, team_id)
-        install_url = f"{APP_BASE_URL}/slack/install"
-        respond(f"Couldn't set your status — try re-authorising. <{install_url}|Authorise here →>")
+        response = getattr(exc, "response", None)
+        error_code = response["error"] if response is not None else ""
+        if error_code == "profile_status_set_failed_not_valid_emoji":
+            respond("Couldn't set your status — that emoji doesn't exist in Slack. Try describing your lunch differently.")
+        else:
+            install_url = f"{APP_BASE_URL}/slack/install"
+            respond(f"Couldn't set your status — try re-authorising. <{install_url}|Authorise here →>")
         return
 
     if result["emoji"] == FALLBACK_EMOJI:

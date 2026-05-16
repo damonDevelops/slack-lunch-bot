@@ -1,8 +1,11 @@
+import logging
 import os
 import secrets as _secrets_module
 import time
 from datetime import datetime, timezone
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 import boto3
 from botocore.exceptions import ClientError
@@ -16,6 +19,7 @@ def get_system_default_duration() -> int:
         resp = ssm.get_parameter(Name="/slack-lunch-bot/default_duration_minutes")
         return int(resp["Parameter"]["Value"])
     except Exception:
+        logger.exception("Failed to read SSM parameter, falling back to 30 minutes")
         return 30
 
 

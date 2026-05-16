@@ -114,6 +114,7 @@ def _handle_lunch_lazy(body, client, respond, context):
             )
             respond("Status cleared.")
         except Exception:
+            logger.exception("Failed to clear Slack status for user %s in team %s", user_id, team_id)
             install_url = f"{APP_BASE_URL}/slack/install"
             respond(f"Couldn't clear your status — try re-authorising. <{install_url}|Authorise here →>")
         return
@@ -121,6 +122,7 @@ def _handle_lunch_lazy(body, client, respond, context):
     try:
         result = parse_lunch(user_text)
     except Exception:
+        logger.exception("Failed to parse lunch text %r for user %s", user_text, user_id)
         respond("Couldn't figure out that lunch — try describing it differently.")
         return
 
@@ -138,6 +140,7 @@ def _handle_lunch_lazy(body, client, respond, context):
             token=installation.user_token,
         )
     except Exception:
+        logger.exception("Failed to set Slack status for user %s in team %s", user_id, team_id)
         install_url = f"{APP_BASE_URL}/slack/install"
         respond(f"Couldn't set your status — try re-authorising. <{install_url}|Authorise here →>")
         return

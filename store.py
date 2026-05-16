@@ -7,6 +7,15 @@ from slack_sdk.oauth.installation_store import InstallationStore, Installation
 from slack_sdk.oauth.installation_store.models.bot import Bot
 
 
+def get_system_default_duration() -> int:
+    try:
+        ssm = boto3.client("ssm", region_name=os.environ.get("AWS_REGION", "ap-southeast-2"))
+        resp = ssm.get_parameter(Name="/slack-lunch-bot/default_duration_minutes")
+        return int(resp["Parameter"]["Value"])
+    except Exception:
+        return 30
+
+
 class DynamoDBInstallationStore(InstallationStore):
     def __init__(self, table_name: str = "slack-lunch-bot"):
         self.table = boto3.resource(

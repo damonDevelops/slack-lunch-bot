@@ -7,6 +7,15 @@ from slack_sdk.oauth.installation_store import InstallationStore, Installation
 from slack_sdk.oauth.installation_store.models.bot import Bot
 
 
+def get_system_default_duration() -> int:
+    try:
+        ssm = boto3.client("ssm", region_name=os.environ.get("AWS_REGION", "ap-southeast-2"))
+        resp = ssm.get_parameter(Name="/slack-lunch-bot/default_duration_minutes")
+        return int(resp["Parameter"]["Value"])
+    except Exception:
+        return 30
+
+
 class DynamoDBInstallationStore(InstallationStore):
     def __init__(self, table_name: str = "slack-lunch-bot"):
         self.table = boto3.resource(
@@ -62,6 +71,23 @@ class DynamoDBInstallationStore(InstallationStore):
             bot_scopes=["commands"],
             installed_at=datetime.now(tz=timezone.utc),
         )
+
+    def get_workspace_config(self, team_id: str) -> Optional[dict]:
+        resp = self.table.get_item(Key={"pk": f"T#{team_id}", "sk": "config"})
+        item = resp.get("Item")
+        if not item:
+            return None
+        return {"default_duration_minutes": int(item["default_duration_minutes"])}
+
+    def save_workspace_config(self, team_id: str, default_duration_minutes: int) -> None:
+        self.table.put_item(Item={
+            "pk": f"T#{team_id}",
+            "sk": "config",
+            "default_duration_minutes": default_duration_minutes,
+        })
+
+    def delete_workspace_config(self, team_id: str) -> None:
+        self.table.delete_item(Key={"pk": f"T#{team_id}", "sk": "config"})
 
     def find_bot(
         self,

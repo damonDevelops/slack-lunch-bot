@@ -6,6 +6,7 @@ import pytest
 from datetime import datetime, timezone
 from moto import mock_aws
 from slack_sdk.oauth.installation_store import Installation
+from unittest.mock import patch
 
 from store import DynamoDBInstallationStore
 
@@ -84,3 +85,57 @@ def test_save_overwrites_existing_user_token():
 
     found = store.find_installation(enterprise_id=None, team_id="T123", user_id="U456")
     assert found.user_token == "xoxp-new"
+
+
+@mock_aws
+def test_save_and_get_workspace_config():
+    make_table()
+    store = DynamoDBInstallationStore()
+    store.save_workspace_config("T123", 45)
+
+    config = store.get_workspace_config("T123")
+    assert config is not None
+    assert config["default_duration_minutes"] == 45
+
+
+@mock_aws
+def test_get_workspace_config_returns_none_when_absent():
+    make_table()
+    store = DynamoDBInstallationStore()
+
+    config = store.get_workspace_config("T123")
+    assert config is None
+
+
+@mock_aws
+def test_delete_workspace_config():
+    make_table()
+    store = DynamoDBInstallationStore()
+    store.save_workspace_config("T123", 45)
+    store.delete_workspace_config("T123")
+
+    config = store.get_workspace_config("T123")
+    assert config is None
+
+
+def test_get_system_default_duration_reads_ssm():
+    from store import get_system_default_duration
+    with patch("store.boto3.client") as mock_client:
+        mock_ssm = mock_client.return_value
+        mock_ssm.get_parameter.return_value = {
+            "Parameter": {"Value": "45"}
+        }
+        result = get_system_default_duration()
+    assert result == 45
+    mock_ssm.get_parameter.assert_called_once_with(
+        Name="/slack-lunch-bot/default_duration_minutes"
+    )
+
+
+def test_get_system_default_duration_falls_back_on_error():
+    from store import get_system_default_duration
+    with patch("store.boto3.client") as mock_client:
+        mock_ssm = mock_client.return_value
+        mock_ssm.get_parameter.side_effect = Exception("SSM unavailable")
+        result = get_system_default_duration()
+    assert result == 30

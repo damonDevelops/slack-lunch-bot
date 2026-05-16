@@ -3,6 +3,8 @@ import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import { HttpApi, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { Construct } from 'constructs';
@@ -10,6 +12,12 @@ import { Construct } from 'constructs';
 export class SlackLunchBotStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    const defaultDurationParam = new ssm.StringParameter(this, 'DefaultDurationParam', {
+      parameterName: '/slack-lunch-bot/default_duration_minutes',
+      stringValue: '30',
+      description: 'System-wide default lunch duration in minutes',
+    });
 
     const table = new dynamodb.Table(this, 'InstallationTable', {
       tableName: 'slack-lunch-bot',
@@ -50,12 +58,15 @@ export class SlackLunchBotStack extends cdk.Stack {
         SLACK_CLIENT_ID: secret.secretValueFromJson('SLACK_CLIENT_ID').unsafeUnwrap(),
         SLACK_CLIENT_SECRET: secret.secretValueFromJson('SLACK_CLIENT_SECRET').unsafeUnwrap(),
         ANTHROPIC_API_KEY: secret.secretValueFromJson('ANTHROPIC_API_KEY').unsafeUnwrap(),
-        DEFAULT_LUNCH_DURATION_MINUTES: '30',
       },
     });
 
     table.grantReadWriteData(fn);
     secret.grantRead(fn);
+    fn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ssm:GetParameter'],
+      resources: [defaultDurationParam.parameterArn],
+    }));
 
     const integration = new HttpLambdaIntegration('LunchBotIntegration', fn);
 

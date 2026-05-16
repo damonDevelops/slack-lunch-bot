@@ -1,12 +1,14 @@
+import logging
 import os
 import time
 
 from slack_bolt import App
 from slack_bolt.oauth.oauth_settings import OAuthSettings
-from slack_sdk.oauth.state_store import FileOAuthStateStore
-from store import DynamoDBInstallationStore, get_system_default_duration
+from store import DynamoDBInstallationStore, DynamoDBOAuthStateStore, get_system_default_duration
 from llm import parse_lunch
 from bot_secrets import load_secrets
+
+logger = logging.getLogger(__name__)
 
 installation_store = DynamoDBInstallationStore()
 _secrets = load_secrets()
@@ -20,7 +22,7 @@ app = App(
         user_scopes=["users.profile:write"],
         installation_store=installation_store,
         redirect_uri=os.environ.get("SLACK_REDIRECT_URI"),
-        state_store=FileOAuthStateStore(expiration_seconds=300, base_dir="/tmp/slack-oauth-state"),
+        state_store=DynamoDBOAuthStateStore(),
         install_page_rendering_enabled=False,
     ),
     process_before_response=True,
@@ -59,10 +61,10 @@ def _handle_config_command(args: str, user_id: str, team_id: str, client, respon
     raw = args.rstrip("mM")
     try:
         minutes = int(raw)
-        if minutes <= 0:
+        if minutes <= 0 or minutes > 480:
             raise ValueError
     except ValueError:
-        respond("Please provide a valid duration, e.g. `/lunch config 45` or `/lunch config 45m`.")
+        respond("Please provide a duration between 1 and 480 minutes, e.g. `/lunch config 45`.")
         return
 
     user_info = client.users_info(user=user_id)["user"]
@@ -112,6 +114,7 @@ def _handle_lunch_lazy(body, client, respond, context):
             )
             respond("Status cleared.")
         except Exception:
+            logger.exception("Failed to clear Slack status for user %s in team %s", user_id, team_id)
             install_url = f"{APP_BASE_URL}/slack/install"
             respond(f"Couldn't clear your status — try re-authorising. <{install_url}|Authorise here →>")
         return
@@ -119,10 +122,11 @@ def _handle_lunch_lazy(body, client, respond, context):
     try:
         result = parse_lunch(user_text)
     except Exception:
+        logger.exception("Failed to parse lunch text %r for user %s", user_text, user_id)
         respond("Couldn't figure out that lunch — try describing it differently.")
         return
 
-    duration = result.get("duration_minutes") or resolve_default_duration(team_id)
+    duration = min(int(result.get("duration_minutes") or resolve_default_duration(team_id)), 480)
     expiration = int(time.time()) + duration * 60
 
     try:
@@ -136,6 +140,7 @@ def _handle_lunch_lazy(body, client, respond, context):
             token=installation.user_token,
         )
     except Exception:
+        logger.exception("Failed to set Slack status for user %s in team %s", user_id, team_id)
         install_url = f"{APP_BASE_URL}/slack/install"
         respond(f"Couldn't set your status — try re-authorising. <{install_url}|Authorise here →>")
         return

@@ -45,3 +45,29 @@ def test_load_secrets_raises_when_arn_missing():
     with patch.dict(os.environ, env, clear=True):
         with pytest.raises(KeyError):
             bot_secrets.load_secrets()
+
+
+@mock_aws
+def test_load_secrets_caches_result():
+    arn = _create_secret()
+    import importlib
+    import bot_secrets
+    importlib.reload(bot_secrets)
+    with patch.dict(os.environ, {"BOT_SECRET_ARN": arn}):
+        first = bot_secrets.load_secrets()
+        second = bot_secrets.load_secrets()
+    assert first is second  # same dict object — no second API call
+
+
+@mock_aws
+def test_load_secrets_cache_cleared_on_reload():
+    arn = _create_secret()
+    import importlib
+    import bot_secrets
+    importlib.reload(bot_secrets)
+    with patch.dict(os.environ, {"BOT_SECRET_ARN": arn}):
+        first = bot_secrets.load_secrets()
+    importlib.reload(bot_secrets)
+    with patch.dict(os.environ, {"BOT_SECRET_ARN": arn}):
+        second = bot_secrets.load_secrets()
+    assert first is not second  # fresh fetch after reload

@@ -133,32 +133,36 @@ def _handle_lunch_lazy(body, client, respond, context):
     token_prefix = (installation.user_token or "")[:10]
     logger.info("Setting status for user %s: emoji=%r text=%r expiration=%s token_prefix=%s",
                 user_id, result["emoji"], result["status_text"], expiration, token_prefix)
-    try:
-        client.users_profile_set(
-            user=user_id,
-            profile={
-                "status_text": f"{result['verb']}: {result['status_text']}",
-                "status_emoji": result["emoji"],
-                "status_expiration": expiration,
-            },
-            token=installation.user_token,
-        )
-    except Exception as exc:
-        logger.exception("Failed to set Slack status for user %s in team %s", user_id, team_id)
-        response = getattr(exc, "response", None)
-        error_code = response["error"] if response is not None else ""
-        if error_code == "profile_status_set_failed_not_valid_emoji":
-            respond("Couldn't set your status — that emoji doesn't exist in Slack. Try describing your lunch differently.")
-        else:
+    emoji = result["emoji"]
+    for attempt_emoji in [emoji, FALLBACK_EMOJI]:
+        try:
+            client.users_profile_set(
+                user=user_id,
+                profile={
+                    "status_text": f"{result['verb']}: {result['status_text']}",
+                    "status_emoji": attempt_emoji,
+                    "status_expiration": expiration,
+                },
+                token=installation.user_token,
+            )
+            emoji = attempt_emoji
+            break
+        except Exception as exc:
+            response = getattr(exc, "response", None)
+            error_code = response["error"] if response is not None else ""
+            if error_code == "profile_status_set_failed_not_valid_emoji" and attempt_emoji != FALLBACK_EMOJI:
+                logger.warning("Emoji %r rejected by Slack for user %s, retrying with fallback", attempt_emoji, user_id)
+                continue
+            logger.exception("Failed to set Slack status for user %s in team %s", user_id, team_id)
             install_url = f"{APP_BASE_URL}/slack/install"
             respond(f"Couldn't set your status — try re-authorising. <{install_url}|Authorise here →>")
-        return
+            return
 
     verb = result["verb"]
-    if result["emoji"] == FALLBACK_EMOJI:
-        respond(f"{result['emoji']} Status set to *{verb}: {result['status_text']}* for {duration} minutes. _no emoji for that meal... how fancy_")
+    if emoji == FALLBACK_EMOJI:
+        respond(f"{emoji} Status set to *{verb}: {result['status_text']}* for {duration} minutes. _no emoji for that meal... how fancy_")
     else:
-        respond(f"{result['emoji']} Status set to *{verb}: {result['status_text']}* for {duration} minutes.")
+        respond(f"{emoji} Status set to *{verb}: {result['status_text']}* for {duration} minutes.")
 
 
 app.command("/lunch")(ack=_ack_lunch, lazy=[_handle_lunch_lazy])

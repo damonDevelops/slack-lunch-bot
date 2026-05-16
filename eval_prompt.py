@@ -39,14 +39,22 @@ def judge_emoji(client: anthropic.Anthropic, food_input: str, chosen_emoji: str,
         max_tokens=150,
         temperature=0,
         system=_JUDGE_SYSTEM,
-        messages=[{"role": "user", "content": user_content}],
+        messages=[
+            {"role": "user", "content": user_content},
+            {"role": "assistant", "content": "```json"},
+        ],
+        stop_sequences=["```"],
     )
     return json.loads(message.content[0].text.strip())
 
 
+def _make_client() -> anthropic.Anthropic:
+    return anthropic.Anthropic(api_key=load_secrets()["ANTHROPIC_API_KEY"])
+
+
 def run_eval(cases: list[str], client: anthropic.Anthropic | None = None) -> float:
     if client is None:
-        client = anthropic.Anthropic(api_key=load_secrets()["ANTHROPIC_API_KEY"])
+        client = _make_client()
     total = len(cases)
     scores: list[float] = []
     counts: dict[str, int] = {"good": 0, "could_be_better": 0, "poor": 0, "error": 0}

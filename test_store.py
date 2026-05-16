@@ -84,3 +84,34 @@ def test_save_overwrites_existing_user_token():
 
     found = store.find_installation(enterprise_id=None, team_id="T123", user_id="U456")
     assert found.user_token == "xoxp-new"
+
+
+@mock_aws
+def test_save_and_get_workspace_config():
+    make_table()
+    store = DynamoDBInstallationStore()
+    store.save_workspace_config("T123", 45)
+
+    config = store.get_workspace_config("T123")
+    assert config is not None
+    assert config["default_duration_minutes"] == 45
+
+
+@mock_aws
+def test_get_workspace_config_returns_none_when_absent():
+    make_table()
+    store = DynamoDBInstallationStore()
+
+    config = store.get_workspace_config("T123")
+    assert config is None
+
+
+@mock_aws
+def test_delete_workspace_config():
+    make_table()
+    store = DynamoDBInstallationStore()
+    store.save_workspace_config("T123", 45)
+    store.delete_workspace_config("T123")
+
+    config = store.get_workspace_config("T123")
+    assert config is None

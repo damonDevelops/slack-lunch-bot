@@ -63,6 +63,23 @@ class DynamoDBInstallationStore(InstallationStore):
             installed_at=datetime.now(tz=timezone.utc),
         )
 
+    def get_workspace_config(self, team_id: str) -> Optional[dict]:
+        resp = self.table.get_item(Key={"pk": f"T#{team_id}", "sk": "config"})
+        item = resp.get("Item")
+        if not item:
+            return None
+        return {"default_duration_minutes": int(item["default_duration_minutes"])}
+
+    def save_workspace_config(self, team_id: str, default_duration_minutes: int) -> None:
+        self.table.put_item(Item={
+            "pk": f"T#{team_id}",
+            "sk": "config",
+            "default_duration_minutes": default_duration_minutes,
+        })
+
+    def delete_workspace_config(self, team_id: str) -> None:
+        self.table.delete_item(Key={"pk": f"T#{team_id}", "sk": "config"})
+
     def find_bot(
         self,
         enterprise_id: Optional[str],

@@ -5,6 +5,8 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
 import { HttpApi, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { Construct } from 'constructs';
@@ -93,6 +95,11 @@ export class SlackLunchBotStack extends cdk.Stack {
     // so they must be added after the api construct is created
     fn.addEnvironment('APP_BASE_URL', api.url!);
     fn.addEnvironment('SLACK_REDIRECT_URI', `${api.url!}slack/oauth_redirect`);
+
+    new events.Rule(this, 'WarmingRule', {
+      schedule: events.Schedule.rate(cdk.Duration.minutes(5)),
+      targets: [new targets.LambdaFunction(fn)],
+    });
 
     new cdk.CfnOutput(this, 'ApiUrl', {
       value: api.url!,

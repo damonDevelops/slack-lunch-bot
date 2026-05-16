@@ -48,7 +48,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::582866709827:role/github-actions-slack-lunch-bot
+          role-to-assume: arn:aws:iam::582866709827:role/github-OIDC-role
           aws-region: ap-southeast-2
 
       - name: Deploy

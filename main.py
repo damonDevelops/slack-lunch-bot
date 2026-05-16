@@ -129,8 +129,9 @@ def _handle_lunch_lazy(body, client, respond, context):
     duration = min(int(result.get("duration_minutes") or resolve_default_duration(team_id)), 480)
     expiration = int(time.time()) + duration * 60
 
-    logger.info("Setting status for user %s: emoji=%r text=%r expiration=%s",
-                user_id, result["emoji"], result["status_text"], expiration)
+    token_prefix = (installation.user_token or "")[:10]
+    logger.info("Setting status for user %s: emoji=%r text=%r expiration=%s token_prefix=%s",
+                user_id, result["emoji"], result["status_text"], expiration, token_prefix)
     try:
         client.users_profile_set(
             user=user_id,

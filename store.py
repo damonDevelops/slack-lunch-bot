@@ -1,8 +1,11 @@
 import os
+import secrets as _secrets_module
+import time
 from datetime import datetime, timezone
 from typing import Optional
 
 import boto3
+from botocore.exceptions import ClientError
 from slack_sdk.oauth.installation_store import InstallationStore, Installation
 from slack_sdk.oauth.installation_store.models.bot import Bot
 
@@ -109,3 +112,36 @@ class DynamoDBInstallationStore(InstallationStore):
             bot_scopes=["commands"],
             installed_at=datetime.now(tz=timezone.utc),
         )
+
+
+class DynamoDBOAuthStateStore:
+    def __init__(self, table_name: str = "slack-lunch-bot", expiration_seconds: int = 300):
+        self.table = boto3.resource(
+            "dynamodb",
+            region_name=os.environ.get("AWS_REGION", "ap-southeast-2"),
+        ).Table(table_name)
+        self.expiration_seconds = expiration_seconds
+
+    def issue(self, *args, **kwargs) -> str:
+        state = _secrets_module.token_urlsafe(32)
+        self.table.put_item(Item={
+            "pk": "oauth_state",
+            "sk": state,
+            "ttl": int(time.time()) + self.expiration_seconds,
+        })
+        return state
+
+    def consume(self, state: str) -> bool:
+        try:
+            resp = self.table.delete_item(
+                Key={"pk": "oauth_state", "sk": state},
+                ConditionExpression="attribute_exists(sk) AND #t > :now",
+                ExpressionAttributeNames={"#t": "ttl"},
+                ExpressionAttributeValues={":now": int(time.time())},
+                ReturnValues="ALL_OLD",
+            )
+            return bool(resp.get("Attributes"))
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+                return False
+            raise

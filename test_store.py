@@ -3,6 +3,7 @@ os.environ.setdefault("AWS_DEFAULT_REGION", "ap-southeast-2")
 
 import boto3
 import pytest
+import time
 from datetime import datetime, timezone
 from moto import mock_aws
 from slack_sdk.oauth.installation_store import Installation
@@ -139,3 +140,56 @@ def test_get_system_default_duration_falls_back_on_error():
         mock_ssm.get_parameter.side_effect = Exception("SSM unavailable")
         result = get_system_default_duration()
     assert result == 30
+
+
+@mock_aws
+def test_oauth_state_store_issue_returns_string():
+    make_table()
+    from store import DynamoDBOAuthStateStore
+    state_store = DynamoDBOAuthStateStore()
+    state = state_store.issue()
+    assert isinstance(state, str)
+    assert len(state) > 20
+
+
+@mock_aws
+def test_oauth_state_store_consume_valid_state():
+    make_table()
+    from store import DynamoDBOAuthStateStore
+    state_store = DynamoDBOAuthStateStore()
+    state = state_store.issue()
+    result = state_store.consume(state)
+    assert result is True
+
+
+@mock_aws
+def test_oauth_state_store_consume_unknown_state():
+    make_table()
+    from store import DynamoDBOAuthStateStore
+    state_store = DynamoDBOAuthStateStore()
+    result = state_store.consume("totally-made-up-token")
+    assert result is False
+
+
+@mock_aws
+def test_oauth_state_store_consume_expired_state():
+    make_table()
+    from store import DynamoDBOAuthStateStore
+    state_store = DynamoDBOAuthStateStore()
+    state_store.table.put_item(Item={
+        "pk": "oauth_state",
+        "sk": "expired_token",
+        "ttl": int(time.time()) - 1,
+    })
+    result = state_store.consume("expired_token")
+    assert result is False
+
+
+@mock_aws
+def test_oauth_state_store_consume_is_single_use():
+    make_table()
+    from store import DynamoDBOAuthStateStore
+    state_store = DynamoDBOAuthStateStore()
+    state = state_store.issue()
+    assert state_store.consume(state) is True
+    assert state_store.consume(state) is False  # already deleted

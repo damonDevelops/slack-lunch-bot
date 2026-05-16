@@ -1,0 +1,31 @@
+# Simple cases — obvious emoji match
+- "a slice of pizza"
+- "a cup of coffee"
+- "a cold beer"
+- "birthday cake"
+- "a cheeseburger and fries"
+- "a glass of red wine"
+
+# Moderate cases — from smoke_test_llm.py
+- "a spicy burrito 45m"
+- "pulled pork tacos 1h"
+- "a caesar salad"
+- "fish and chips 30m"
+- "leftover pasta"
+- "a green smoothie 20m"
+- "avocado toast"
+- "pepperoni pizza"
+
+# Challenging cases — require creative leap or ambiguous category
+- "bibimbap"
+- "poke bowl"
+- "charcuterie board"
+- "a dirty chai latte"
+- "bone broth"
+- "eggs benedict"
+- "a grain bowl with roasted veggies and tahini"
+- "banh mi sandwich"
+- "congee"
+- "a protein shake"
+- "miso soup"
+- "shakshuka"

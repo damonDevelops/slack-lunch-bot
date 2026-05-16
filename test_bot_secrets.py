@@ -37,14 +37,15 @@ def test_load_secrets_returns_all_keys():
 
 
 @mock_aws
-def test_load_secrets_raises_when_arn_missing():
-    env = {k: v for k, v in os.environ.items() if k != "BOT_SECRET_ARN"}
+def test_load_secrets_falls_back_to_env_when_arn_missing():
     import importlib
     import bot_secrets
     importlib.reload(bot_secrets)
+    env = {k: v for k, v in os.environ.items() if k != "BOT_SECRET_ARN"}
+    env["ANTHROPIC_API_KEY"] = "local-key"
     with patch.dict(os.environ, env, clear=True):
-        with pytest.raises(KeyError):
-            bot_secrets.load_secrets()
+        result = bot_secrets.load_secrets()
+    assert result["ANTHROPIC_API_KEY"] == "local-key"
 
 
 @mock_aws

@@ -2,7 +2,7 @@
 
 Set your Slack status to what you're eating, with the right emoji. Just type `/lunch` and let AI do the rest.
 
-```
+```text
 /lunch a spicy burrito 45m
 ```
 
@@ -11,7 +11,7 @@ Lunchbot picks a fitting emoji, sets your status text, and clears it automatical
 ## Commands
 
 | Command | What it does |
-|---|---|
+| --- | --- |
 | `/lunch [what you're eating]` | Sets your status with a matching emoji |
 | `/lunch [what you're eating] 45m` | Sets status for a specific duration |
 | `/lunch clear` or `/lunch done` | Clears your status early |

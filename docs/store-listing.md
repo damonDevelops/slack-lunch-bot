@@ -17,7 +17,11 @@ Just type `/lunch a spicy burrito 45m` and Lunchbot picks the most fitting emoji
 ## How it works
 
 - `/lunch [what you're eating] [optional duration]` — sets your status instantly
-- `/lunch clear` — clears your status early
-- Duration is optional — defaults to 30 minutes if you don't specify
+- `/lunch clear` or `/lunch done` — clears your status early
+- `/lunch config` — shows your workspace's current default duration
+- `/lunch config 45` or `/lunch config 45m` — sets the workspace default duration (admins only)
+- `/lunch config reset` — resets to the system default (admins only)
+
+Duration is optional — defaults to your workspace setting if not specified.
 
 Powered by Claude AI for emoji selection that actually makes sense.

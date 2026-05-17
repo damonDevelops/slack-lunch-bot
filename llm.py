@@ -81,24 +81,9 @@ def _get_client() -> anthropic.Anthropic:
     return _client
 
 
-_SYSTEM_PROMPT_BASE = """You are a Slack status assistant. Given a description of what someone is eating or drinking for lunch, return ONLY a valid JSON object with exactly these four fields:
+_SYSTEM_PROMPT_SHARED = """You are a Slack status assistant. Given a description of what someone is eating or drinking for lunch, return ONLY a valid JSON object with exactly these four fields:
 
-- "emoji": the Slack emoji shortcode that best represents the food or drink. Follow these matching heuristics strictly:
-  1. Literal Food Only: Always choose an emoji that represents the actual food/drink substance. Never pick a conceptual or celebration emoji (e.g., use `:cake:` for "birthday cake", never `:birthday:`).
-  2. Complete Meals vs. Ingredients: For mixed bowls, broths, or pan-cooked dishes (e.g., "poke bowl", "bibimbap", "congee", "shakshuka"), use the vessel that represents the complete dish (`:bowl_with_spoon:`, `:shallow_pan_of_food:`). Do not reduce a whole meal to a single ingredient like `:rice:` or `:egg:`.
-  3. Defining Ingredient Priority: For open-faced items or items defined by a single add-on (e.g., "avocado toast"), prioritize the star ingredient (`:avocado:`) over the generic base (`:bread:`).
-  4. Main Dish Focus: In multi-item meals (e.g., "cheeseburger and fries"), pick the main dish (`:hamburger:`). If the main dish lacks an emoji (e.g., "fish and chips"), pick the iconic side (`:fries:`).
-  5. Only use `:knife_fork_plate:` as an absolute last resort.
-
-- "verb": "Eating" if it is food, "Drinking" if it is primarily a drink (e.g. wine, coffee, a smoothie, broth, shakes).
-- "status_text": preserve the user's original phrasing as closely as possible — keep descriptive words like "greasy", "spicy", "a big bowl of". Strip any duration mention (e.g. "45m", "1h", "for 30 minutes"). Only condense if the result would exceed 90 characters. No verb prefix.
-- "duration_minutes": an integer parsed from any duration in the input (e.g. "1h" → 60, "45m" → 45, "1.5h" → 90), or null if no duration is mentioned.
-
-Return ONLY the JSON object. No explanation, no markdown, no code fences."""
-
-_SYSTEM_PROMPT_WITH_LIST = """You are a Slack status assistant. Given a description of what someone is eating or drinking for lunch, return ONLY a valid JSON object with exactly these four fields:
-
-- "emoji": the Slack emoji shortcode from the allowed list below that best represents the food or drink. Follow these matching heuristics strictly:
+- "emoji": the Slack emoji shortcode{emoji_source} that best represents the food or drink. Follow these matching heuristics strictly:
   1. Literal Food Only: Always choose an emoji that represents the actual food/drink substance. Never pick a conceptual or celebration emoji (e.g., use `:cake:` for "birthday cake", never `:birthday:`).
   2. Complete Meals vs. Ingredients: For mixed bowls, broths, or pan-cooked dishes (e.g., "poke bowl", "bibimbap", "congee", "shakshuka"), use the vessel that represents the complete dish (`:bowl_with_spoon:`, `:shallow_pan_of_food:`). Do not reduce a whole meal to a single ingredient like `:rice:` or `:egg:`.
   3. Defining Ingredient Priority: For open-faced items or items defined by a single add-on (e.g., "avocado toast"), prioritize the star ingredient (`:avocado:`) over the generic base (`:bread:`).
@@ -109,9 +94,14 @@ _SYSTEM_PROMPT_WITH_LIST = """You are a Slack status assistant. Given a descript
 - "status_text": preserve the user's original phrasing as closely as possible — keep descriptive words like "greasy", "spicy", "a big bowl of". Strip any duration mention (e.g. "45m", "1h", "for 30 minutes"). Only condense if the result would exceed 90 characters. No verb prefix.
 - "duration_minutes": an integer parsed from any duration in the input (e.g. "1h" → 60, "45m" → 45, "1.5h" → 90), or null if no duration is mentioned.
 
-Return ONLY the JSON object. No explanation, no markdown, no code fences.
+Return ONLY the JSON object. No explanation, no markdown, no code fences.{emoji_list_section}"""
 
-Allowed emojis: {emoji_list}"""
+_SYSTEM_PROMPT_BASE = _SYSTEM_PROMPT_SHARED.format(emoji_source="", emoji_list_section="")
+
+_SYSTEM_PROMPT_WITH_LIST = _SYSTEM_PROMPT_SHARED.format(
+    emoji_source=" from the allowed list below",
+    emoji_list_section="\n\nAllowed emojis: {emoji_list}",
+)
 
 def parse_lunch(user_text: str, emoji_allowlist: list[str] | None = None) -> dict:
     if emoji_allowlist:

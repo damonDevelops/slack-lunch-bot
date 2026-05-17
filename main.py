@@ -28,7 +28,7 @@ app = App(
     process_before_response=True,
 )
 
-APP_BASE_URL = os.environ.get("APP_BASE_URL", "")
+APP_BASE_URL = os.environ.get("APP_BASE_URL", "").rstrip("/")
 
 
 def resolve_default_duration(team_id: str) -> int:
@@ -58,13 +58,16 @@ def _handle_config_command(args: str, user_id: str, team_id: str, client, respon
         respond(f"Workspace default reset. Using system default of *{default} minutes*.")
         return
 
-    raw = args.rstrip("mM")
+    raw = args.strip()
     try:
-        minutes = int(raw)
+        if raw.lower().endswith("h"):
+            minutes = round(float(raw[:-1]) * 60)
+        else:
+            minutes = int(raw.rstrip("mM"))
         if minutes <= 0 or minutes > 480:
             raise ValueError
     except ValueError:
-        respond("Please provide a duration between 1 and 480 minutes, e.g. `/lunch config 45`.")
+        respond("Please provide a duration between 1 and 480 minutes, e.g. `/lunch config 45` or `/lunch config 2h`.")
         return
 
     user_info = client.users_info(user=user_id)["user"]

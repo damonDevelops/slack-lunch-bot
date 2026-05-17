@@ -4,7 +4,7 @@ from lambda_handler import handler
 
 def test_warming_event_short_circuits_to_200():
     event = {"source": "aws.events", "detail-type": "Scheduled Event"}
-    assert handler(event, {}) == {"statusCode": 200}
+    assert handler(event, {}) == {"statusCode": 200, "body": ""}
 
 
 def test_non_warming_eventbridge_event_is_not_short_circuited():

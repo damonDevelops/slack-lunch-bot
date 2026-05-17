@@ -26,6 +26,8 @@ Rate it as one of:
 
 Give a one-sentence reason. If the rating is not "good", name the better emoji.
 Return only JSON: {"rating": "...", "reason": "..."}"""
+
+
 def load_cases(path: str) -> list[str]:
     with open(path) as f:
         return yaml.safe_load(f)
@@ -54,6 +56,7 @@ def judge_emoji(client: anthropic.Anthropic, food_input: str, chosen_emoji: str,
         if raw.startswith("json"):
             raw = raw[4:]
     return json.loads(raw.strip())
+
 
 def _make_client() -> anthropic.Anthropic:
     return anthropic.Anthropic(api_key=load_secrets()["ANTHROPIC_API_KEY"])

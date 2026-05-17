@@ -16,7 +16,7 @@ slack_handler = SlackRequestHandler(app=app)
 
 def handler(event, context):
     if event.get("source") == "aws.events" and event.get("detail-type") == "Scheduled Event":
-        return {"statusCode": 200}
+        return {"statusCode": 200, "body": ""}
     logger.debug("Event: %s", json.dumps(event))
     response = slack_handler.handle(event, context)
     logger.debug("Response: %s", json.dumps(response))

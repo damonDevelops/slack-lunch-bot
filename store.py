@@ -11,11 +11,12 @@ import boto3
 from botocore.exceptions import ClientError
 from slack_sdk.oauth.installation_store import InstallationStore, Installation
 from slack_sdk.oauth.installation_store.models.bot import Bot
+from slack_sdk.oauth.state_store import OAuthStateStore
 
 
 def get_system_default_duration() -> int:
     try:
-        ssm = boto3.client("ssm", region_name=os.environ.get("AWS_REGION", "ap-southeast-2"))
+        ssm = boto3.client("ssm", region_name=os.environ.get("AWS_REGION"))
         resp = ssm.get_parameter(Name="/slack-lunch-bot/default_duration_minutes")
         return int(resp["Parameter"]["Value"])
     except Exception:
@@ -27,7 +28,7 @@ class DynamoDBInstallationStore(InstallationStore):
     def __init__(self, table_name: str = "slack-lunch-bot"):
         self.table = boto3.resource(
             "dynamodb",
-            region_name=os.environ.get("AWS_REGION", "ap-southeast-2"),
+            region_name=os.environ.get("AWS_REGION"),
         ).Table(table_name)
 
     def save(self, installation: Installation) -> None:
@@ -118,11 +119,11 @@ class DynamoDBInstallationStore(InstallationStore):
         )
 
 
-class DynamoDBOAuthStateStore:
+class DynamoDBOAuthStateStore(OAuthStateStore):
     def __init__(self, table_name: str = "slack-lunch-bot", expiration_seconds: int = 300):
         self.table = boto3.resource(
             "dynamodb",
-            region_name=os.environ.get("AWS_REGION", "ap-southeast-2"),
+            region_name=os.environ.get("AWS_REGION"),
         ).Table(table_name)
         self.expiration_seconds = expiration_seconds
 

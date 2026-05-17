@@ -19,7 +19,7 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - run: pytest test_store.py test_bot_secrets.py -v
+      - run: pytest -v
 
   deploy:
     needs: test

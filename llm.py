@@ -50,6 +50,7 @@ BUILTIN_FOOD_EMOJIS = [
 
 _emoji_cache: dict[str, tuple[float, list[str]]] = {}
 _EMOJI_CACHE_TTL = 3600  # 1 hour; resets naturally on Lambda cold start
+_MAX_CUSTOM_EMOJIS = 500
 
 
 def get_workspace_emoji_list(client, team_id: str) -> list[str]:
@@ -62,6 +63,9 @@ def get_workspace_emoji_list(client, team_id: str) -> list[str]:
     try:
         response = client.emoji_list()
         custom = [f":{name}:" for name in response.get("emoji", {}).keys()]
+        if len(custom) > _MAX_CUSTOM_EMOJIS:
+            logger.warning("Team %s has %d custom emojis, capping at %d", team_id, len(custom), _MAX_CUSTOM_EMOJIS)
+            custom = custom[:_MAX_CUSTOM_EMOJIS]
         logger.info("Fetched %d custom emojis for team %s", len(custom), team_id)
     except Exception:
         logger.warning("Failed to fetch custom emojis for team %s, using built-ins only", team_id)
@@ -113,7 +117,7 @@ def parse_lunch(user_text: str, emoji_allowlist: list[str] | None = None) -> dic
         model="claude-haiku-4-5-20251001",
         max_tokens=150,
         temperature=0.2,
-        system=system_prompt,
+        system=[{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}],
         messages=[
             {"role": "user", "content": user_text},
             {"role": "assistant", "content": "```json"},

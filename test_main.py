@@ -83,3 +83,35 @@ def test_generic_slack_error_returns_generic_message():
     respond = _run(_body(), side_effects=[_SlackApiError("ratelimited")])
     call_text = respond.call_args[0][0]
     assert "went wrong" in call_text.lower() or "something" in call_text.lower()
+
+
+# --- /lunch clear and /lunch done ---
+
+def _run_clear(text, side_effect=None):
+    respond = MagicMock()
+    client = MagicMock()
+    if side_effect is not None:
+        client.users_profile_set.side_effect = side_effect
+    with patch.object(main.installation_store, "find_installation", return_value=_installation()):
+        _handle_lunch_lazy(body=_body(text), client=client, respond=respond, context={})
+    return respond, client
+
+
+def test_clear_command_clears_status():
+    respond, client = _run_clear("clear")
+    client.users_profile_set.assert_called_once()
+    profile = client.users_profile_set.call_args[1]["profile"]
+    assert profile["status_text"] == ""
+    assert profile["status_emoji"] == ""
+    respond.assert_called_once_with("Status cleared.")
+
+
+def test_done_command_clears_status():
+    respond, _ = _run_clear("done")
+    respond.assert_called_once_with("Status cleared.")
+
+
+def test_clear_command_api_error_includes_reauth_link():
+    respond, _ = _run_clear("clear", side_effect=Exception("fail"))
+    call_text = respond.call_args[0][0]
+    assert "Authorise here" in call_text or "authoris" in call_text.lower()

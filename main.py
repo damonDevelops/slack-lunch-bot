@@ -127,7 +127,8 @@ def _handle_lunch_lazy(body, client, respond, context):
         respond("Couldn't figure out that lunch — try describing it differently.")
         return
 
-    duration = min(int(result.get("duration_minutes") or resolve_default_duration(team_id)), 480)
+    dm = result.get("duration_minutes")
+    duration = min(int(dm if dm is not None else resolve_default_duration(team_id)), 480)
     expiration = int(time.time()) + duration * 60
 
     token_prefix = (installation.user_token or "")[:10]

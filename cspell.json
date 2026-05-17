@@ -1,13 +1,18 @@
 {
   "version": "0.2",
   "words": [
-    "Lunchbot",
-    "apigatewayv",
-    "manylinux",
     "acking",
-    "serverlessly",
+    "apigatewayv",
     "authorise",
     "authorising",
-    "pytest"
+    "bibimbap",
+    "capsys",
+    "dotenv",
+    "kamaboko",
+    "Lunchbot",
+    "manylinux",
+    "pytest",
+    "serverlessly",
+    "xoxb"
   ]
 }
